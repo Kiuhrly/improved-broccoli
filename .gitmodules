@@ -1,0 +1,3 @@
+[submodule "eframe_template"]
+	path = gui
+	url = https://github.com/emilk/eframe_template/

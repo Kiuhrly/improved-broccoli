@@ -1,0 +1,16 @@
+[workspace]
+
+members = [
+    "chip8",
+    "gui",
+]
+
+
+# Profile options copied from the eframe_template Cargo.toml
+
+[profile.release]
+opt-level = 2 # fast and small wasm
+
+# Optimize all dependencies even in debug builds:
+[profile.dev.package."*"]
+opt-level = 2
