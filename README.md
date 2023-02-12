@@ -8,7 +8,7 @@ WIP [CHIP-8](https://en.wikipedia.org/wiki/CHIP-8) emulator written in Rust, for
   - Emulator logic for the [CHIP-8](https://en.wikipedia.org/wiki/CHIP-8)
 - gui
   - GUI for the emulator using [egui](https://docs.rs/egui/latest/egui/) and [eframe](https://docs.rs/eframe/latest/eframe/)
-  - This is based on the eframe_template project, and is in fact just a submodule with modifications.
+  - This is based on the eframe_template project
 
 ## Running
 
