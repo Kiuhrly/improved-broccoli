@@ -1,3 +1,9 @@
+#![no_std]
+#[forbid(unsafe_code)]
+#[deny(clippy::all)]
+
+pub mod instruction;
+
 pub fn add(left: f32, right: f32) -> f32 {
     left + right
 }
