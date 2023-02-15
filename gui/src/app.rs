@@ -1,116 +1,114 @@
-/// We derive Deserialize/Serialize so we can persist app state on shutdown.
-#[derive(serde::Deserialize, serde::Serialize)]
-#[serde(default)] // if we add new fields, give them default values when deserializing old state
-pub struct TemplateApp {
-    // Example stuff:
-    label: String,
+use std::{fs, io};
 
-    // this how you opt-out of serialization of a member
-    #[serde(skip)]
-    value: f32,
+use chip8::cpu::Chip8;
+use egui::DroppedFile;
+
+use crate::{keyboard::get_key_state, screen_ui::draw_chip8_screen};
+
+#[derive(Default)]
+pub struct App {
+    chip8: Option<Chip8>,
+    previous_keyboard_state: [bool; 16],
+    delta_accumulator: f32,
+
+    filename: String,
 }
 
-impl Default for TemplateApp {
-    fn default() -> Self {
-        Self {
-            // Example stuff:
-            label: "Hello World!".to_owned(),
-            value: 2.7,
-        }
-    }
-}
-
-impl TemplateApp {
-    /// Called once before the first frame.
-    pub fn new(cc: &eframe::CreationContext<'_>) -> Self {
-        // This is also where you can customize the look and feel of egui using
-        // `cc.egui_ctx.set_visuals` and `cc.egui_ctx.set_fonts`.
-
-        // Load previous app state (if any).
-        // Note that you must enable the `persistence` feature for this to work.
-        if let Some(storage) = cc.storage {
-            return eframe::get_value(storage, eframe::APP_KEY).unwrap_or_default();
-        }
-
+impl App {
+    pub fn new(_cc: &eframe::CreationContext<'_>) -> Self {
         Default::default()
     }
 }
 
-impl eframe::App for TemplateApp {
-    /// Called by the frame work to save state before shutdown.
-    fn save(&mut self, storage: &mut dyn eframe::Storage) {
-        eframe::set_value(storage, eframe::APP_KEY, self);
-    }
+impl App {}
 
-    /// Called each time the UI needs repainting, which may be many times per second.
-    /// Put your widgets into a `SidePanel`, `TopPanel`, `CentralPanel`, `Window` or `Area`.
+impl eframe::App for App {
     fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
-        let Self { label, value } = self;
+        // Check for dropped files to load
+        let dropped_file: Option<DroppedFile> = ctx.input(|i| i.raw.dropped_files.get(0).cloned());
+        if let Some(dropped_file) = dropped_file {
+            let program: Option<Vec<u8>> = if let Some(dropped_file_bytes) = dropped_file.bytes {
+                // If the dropped file comes with the file bytes (e.g. web), just
+                // use them
+                Some(dropped_file_bytes.to_vec())
+            } else if let Some(dropped_file_path) = dropped_file.path {
+                // Otherwise, try to get the filename and load the file
 
-        // Examples of how to create different panels and windows.
-        // Pick whichever suits you.
-        // Tip: a good default choice is to just keep the `CentralPanel`.
-        // For inspiration and more examples, go to https://emilk.github.io/egui
+                // Can't get local file on wasm
+                #[cfg(not(target_arch = "wasm32"))]
+                {
+                    let mut file = fs::File::open(std::path::Path::new(&dropped_file_path)).unwrap();
+                    let mut program: Vec<u8> = vec![];
+                    io::Read::read_to_end(&mut file, &mut program).unwrap();
+                    Some(program)
+                }
 
-        #[cfg(not(target_arch = "wasm32"))] // no File->Quit on web pages!
-        egui::TopBottomPanel::top("top_panel").show(ctx, |ui| {
-            // The top panel is often a good place for a menu bar:
-            egui::menu::bar(ui, |ui| {
-                ui.menu_button("File", |ui| {
-                    if ui.button("Quit").clicked() {
-                        _frame.close();
-                    }
-                });
-            });
-        });
+                #[cfg(target_arch = "wasm32")]
+                None
+            } else {
+                // Otherwise, nothing useful from the dropped file
+                None
+            };
 
-        egui::SidePanel::left("side_panel").show(ctx, |ui| {
-            ui.heading("Side Panel");
+            // If we got a program from the dropped file, load it
+            if let Some(program) = program {
+                self.chip8 = Some(Chip8::new(&program));
+                self.delta_accumulator = 0.0;
+                ctx.request_repaint();
+            }
+        }
 
-            ui.horizontal(|ui| {
-                ui.label("Write something: ");
-                ui.text_edit_singleline(label);
-            });
+        // Handle CHIP-8 simulation
+        if let Some(chip8) = &mut self.chip8 {
+            let delta_time = ctx.input(|i| i.unstable_dt);
+            self.delta_accumulator += delta_time;
+            let frametime = 1.0 / 60.0; // CHIP-8 runs at 60hz
 
-            ui.add(egui::Slider::new(value, 0.0..=10.0).text("value"));
-            if ui.button("Increment").clicked() {
-                *value = chip8::add(*value, 1.0)
+            let mut keyboard_state: [bool; 16] = Default::default();
+            ctx.input(|i| keyboard_state = get_key_state(i));
+
+            while self.delta_accumulator > frametime {
+                // TODO un-hardcode cycles per frame
+                for _ in 0..30 {
+                    chip8
+                        .cycle(&keyboard_state, &self.previous_keyboard_state)
+                        .unwrap();
+                }
+                chip8.update_timers();
+                self.previous_keyboard_state = keyboard_state;
+                self.delta_accumulator -= frametime;
             }
 
-            ui.with_layout(egui::Layout::bottom_up(egui::Align::LEFT), |ui| {
-                ui.horizontal(|ui| {
-                    ui.spacing_mut().item_spacing.x = 0.0;
-                    ui.label("powered by ");
-                    ui.hyperlink_to("egui", "https://github.com/emilk/egui");
-                    ui.label(" and ");
-                    ui.hyperlink_to(
-                        "eframe",
-                        "https://github.com/emilk/egui/tree/master/crates/eframe",
-                    );
-                    ui.label(".");
-                });
-            });
-        });
+            ctx.request_repaint();
+        }
 
         egui::CentralPanel::default().show(ctx, |ui| {
-            // The central panel the region left after adding TopPanel's and SidePanel's
+            ui.vertical(|ui| {
+                #[cfg(target_arch = "wasm32")]
+                ui.label("Drag a file on to this window to load");
+                #[cfg(not(target_arch = "wasm32"))]
+                {
+                    ui.label("Drag a file on to this window or enter a path below to load");
+                    ui.horizontal(|ui| {
+                        ui.label("File:");
+                        ui.text_edit_singleline(&mut self.filename);
+                        if ui.button("Load").clicked() {
+                            let mut file =
+                                fs::File::open(std::path::Path::new(&self.filename)).unwrap();
+                            let mut program: Vec<u8> = vec![];
+                            io::Read::read_to_end(&mut file, &mut program).unwrap();
 
-            ui.heading("eframe template");
-            ui.hyperlink("https://github.com/emilk/eframe_template");
-            ui.add(egui::github_link_file!(
-                "https://github.com/emilk/eframe_template/blob/master/",
-                "Source code."
-            ));
-            egui::warn_if_debug_build(ui);
+                            self.chip8 = Some(Chip8::new(&program));
+                            self.delta_accumulator = 0.0;
+                            ctx.request_repaint();
+                        }
+                    });
+                }
+
+                if let Some(chip8) = &self.chip8 {
+                    draw_chip8_screen(ui, 10, chip8.get_screen());
+                }
+            })
         });
-
-        if false {
-            egui::Window::new("Window").show(ctx, |ui| {
-                ui.label("Windows can be moved by dragging them.");
-                ui.label("They are automatically sized based on contents.");
-                ui.label("You can turn on resizing and scrolling if you like.");
-                ui.label("You would normally choose either panels OR windows.");
-            });
-        }
     }
 }

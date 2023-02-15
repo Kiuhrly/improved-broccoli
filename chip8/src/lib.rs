@@ -3,6 +3,9 @@
 #[deny(clippy::all)]
 
 pub mod instruction;
+pub mod cpu;
+pub mod memory;
+pub mod screen;
 
 pub fn add(left: f32, right: f32) -> f32 {
     left + right

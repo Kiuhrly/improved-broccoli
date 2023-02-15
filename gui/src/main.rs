@@ -7,11 +7,14 @@ fn main() -> eframe::Result<()> {
     // Log to stdout (if you run with `RUST_LOG=debug`).
     tracing_subscriber::fmt::init();
 
-    let native_options = eframe::NativeOptions::default();
+    let native_options = eframe::NativeOptions {
+        drag_and_drop_support: true,
+        ..Default::default()
+    };
     eframe::run_native(
-        "eframe template",
+        "improved-broccoli",
         native_options,
-        Box::new(|cc| Box::new(gui::TemplateApp::new(cc))),
+        Box::new(|cc| Box::new(gui::App::new(cc))),
     )
 }
 
@@ -30,7 +33,7 @@ fn main() {
         eframe::start_web(
             "the_canvas_id", // hardcode it
             web_options,
-            Box::new(|cc| Box::new(gui::TemplateApp::new(cc))),
+            Box::new(|cc| Box::new(gui::App::new(cc))),
         )
         .await
         .expect("failed to start eframe");
