@@ -64,9 +64,12 @@ The folder `gui/dist/` will contain a static HTML website.
 
 - chip8
   - Emulator logic for the [CHIP-8](https://en.wikipedia.org/wiki/CHIP-8)
+  - No unsafe code (has `#[forbid(unsafe_code)]`)
+  - Supports `no_std` using only `core` (no `alloc` needed!)
 - gui
   - GUI for the emulator using [egui](https://docs.rs/egui/latest/egui/) and [eframe](https://docs.rs/eframe/latest/eframe/)
-  - This is based on the eframe_template project
+  - Based on the [eframe_template](https://github.com/emilk/eframe_template/) project
+  - Supports running in the browser via WASM
 
 ## Goals
 
@@ -93,6 +96,10 @@ The folder `gui/dist/` will contain a static HTML website.
 ### Why "improved-broccoli"?
 
 The name was just a random GitHub repo name suggestion which I thought was funny. Disclaimer: this project does not claim to improve upon, or have any other effect on, broccoli in any way, shape, or form.
+
+### License?
+
+Currently undecided so please don't contribute or use code from this repository without agreeing a license.
 
 ## FAQ for nerds
 
