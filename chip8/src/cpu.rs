@@ -55,12 +55,9 @@ impl Chip8 {
             Ok(inst) => inst,
             Err(err) => return Err(CycleError::DecodeError(err)),
         };
-        if let Err(err) =
-            self.execute_instruction(instruction, keyboard_state, previous_keyboard_state)
-        {
-            Err(CycleError::ExecuteError(err))
-        } else {
-            Ok(())
+        match self.execute_instruction(instruction, keyboard_state, previous_keyboard_state) {
+            Err(err) => Err(CycleError::ExecuteError(err)),
+            Ok(_) => Ok(()),
         }
     }
 

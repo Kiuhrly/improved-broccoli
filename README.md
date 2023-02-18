@@ -70,6 +70,7 @@ The folder `gui/dist/` will contain a static HTML website.
   - GUI for the emulator using [egui](https://docs.rs/egui/latest/egui/) and [eframe](https://docs.rs/eframe/latest/eframe/)
   - Based on the [eframe_template](https://github.com/emilk/eframe_template/) project
   - Supports running in the browser via WASM
+  - [Internationalization](https://en.wikipedia.org/wiki/Internationalization_and_localization) using [rust-i18n](https://github.com/longbridgeapp/rust-i18n)
 
 ## Goals
 

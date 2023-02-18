@@ -3,7 +3,7 @@ use std::{fs, io};
 use chip8::cpu::Chip8;
 use egui::DroppedFile;
 
-use crate::{keyboard::get_key_state, screen_ui::draw_chip8_screen};
+use crate::{keyboard::get_key_state, screen_ui::draw_chip8_screen, settings::Settings};
 
 #[derive(Default)]
 pub struct App {
@@ -12,6 +12,9 @@ pub struct App {
     delta_accumulator: f32,
 
     filename: String,
+
+    settings: Settings,
+    settings_window_open: bool,
 }
 
 impl App {
@@ -20,10 +23,38 @@ impl App {
     }
 }
 
-impl App {}
+impl App {
+    fn top_bar(&mut self, ctx: &egui::Context) {
+        egui::TopBottomPanel::top("top_panel").show(ctx, |ui| {
+            egui::menu::bar(ui, |ui| {
+                ui.menu_button(t!("top_menu.settings_button_text"), |ui| {
+                    if ui
+                        .button(t!("settings.open_settings_button_text"))
+                        .clicked()
+                    {
+                        self.settings_window_open = true;
+                        ui.close_menu();
+                    }
+                });
+            });
+        });
+    }
+}
 
 impl eframe::App for App {
-    fn update(&mut self, ctx: &egui::Context, _frame: &mut eframe::Frame) {
+    fn update(&mut self, ctx: &egui::Context, frame: &mut eframe::Frame) {
+        self.top_bar(ctx);
+
+        let window = egui::Window::new(t!("settings.window_title"))
+            .resizable(true)
+            .collapsible(false)
+            .open(&mut self.settings_window_open);
+        window.show(ctx, |ui| {
+            egui::ScrollArea::vertical().show(ui, |ui| {
+                self.settings.settings_menu(ui);
+            });
+        });
+
         // Check for dropped files to load
         let dropped_file: Option<DroppedFile> = ctx.input(|i| i.raw.dropped_files.get(0).cloned());
         if let Some(dropped_file) = dropped_file {
@@ -37,7 +68,8 @@ impl eframe::App for App {
                 // Can't get local file on wasm
                 #[cfg(not(target_arch = "wasm32"))]
                 {
-                    let mut file = fs::File::open(std::path::Path::new(&dropped_file_path)).unwrap();
+                    let mut file =
+                        fs::File::open(std::path::Path::new(&dropped_file_path)).unwrap();
                     let mut program: Vec<u8> = vec![];
                     io::Read::read_to_end(&mut file, &mut program).unwrap();
                     Some(program)
@@ -106,7 +138,13 @@ impl eframe::App for App {
                 }
 
                 if let Some(chip8) = &self.chip8 {
-                    draw_chip8_screen(ui, 10, chip8.get_screen());
+                    draw_chip8_screen(
+                        ui,
+                        chip8.get_screen(),
+                        10,
+                        self.settings.foreground_color,
+                        self.settings.background_color,
+                    );
                 }
             })
         });

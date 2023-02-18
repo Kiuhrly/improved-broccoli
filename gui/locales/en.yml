@@ -1,0 +1,12 @@
+top_menu:
+  settings_button_text: "Settings"
+settings:
+  open_settings_button_text: "Open settings..."
+  window_title: "Settings"
+  ui_heading: "UI"
+  ui_scale: "UI scale"
+  display_heading: "Display"
+  background_color: "Background color"
+  foreground_color: "Foreground color"
+  color_reset_button: "Reset"
+  color_swap_button: "Swap"
