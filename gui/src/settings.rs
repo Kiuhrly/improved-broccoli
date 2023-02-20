@@ -1,7 +1,7 @@
 use egui::{Align, Color32, Layout, Ui, WidgetText};
 use serde::{Deserialize, Serialize};
 
-#[derive(Serialize, Deserialize)]
+#[derive(Serialize, Deserialize, Clone)]
 #[serde(default)]
 pub struct Settings {
     pub foreground_color: Color32,
@@ -20,23 +20,29 @@ impl Default for Settings {
 impl Settings {
     pub fn settings_menu(&mut self, ui: &mut Ui) {
         ui.vertical(|ui| {
-            ui.heading(t!("settings.display_heading"));
+            ui.heading(t!("settings_window.display_heading"));
             color_picker_setting(
                 ui,
-                t!("settings.foreground_color"),
+                t!("settings_window.foreground_color"),
                 &mut self.foreground_color,
             );
             color_picker_setting(
                 ui,
-                t!("settings.background_color"),
+                t!("settings_window.background_color"),
                 &mut self.background_color,
             );
             ui.horizontal(|ui| {
-                if ui.button(t!("settings.color_reset_button")).clicked() {
+                if ui
+                    .button(t!("settings_window.color_reset_button_text"))
+                    .clicked()
+                {
                     self.foreground_color = Settings::default().foreground_color;
                     self.background_color = Settings::default().background_color;
                 }
-                if ui.button(t!("settings.color_swap_button")).clicked() {
+                if ui
+                    .button(t!("settings_window.color_swap_button_text"))
+                    .clicked()
+                {
                     std::mem::swap(&mut self.foreground_color, &mut self.background_color);
                 }
             });
@@ -64,6 +70,7 @@ fn color_picker_setting(ui: &mut Ui, text: impl Into<WidgetText>, color: &mut Co
 }
 
 /// Error type for `load_settings`
+#[derive(Clone, Copy)]
 pub enum LoadSettingsError {
     /// There was an error deserializing the settings file
     Deserialize,
@@ -73,7 +80,7 @@ pub enum LoadSettingsError {
 ///
 /// This may also save settings if there was no existing settings file.
 pub fn load_settings(
-    storage: &mut (dyn eframe::Storage + 'static),
+    storage: &dyn eframe::Storage,
     key: &str,
 ) -> Result<Settings, LoadSettingsError> {
     if let Some(settings_str) = storage.get_string(key) {
@@ -83,18 +90,13 @@ pub fn load_settings(
         }
     } else {
         // No settings - load default.
-        // TODO: log this
+        tracing::event!(tracing::Level::INFO, "no Settings found, loading default");
         let settings = Settings::default();
-        save_settings(storage, key, &settings);
         Ok(settings)
     }
 }
 
-pub fn save_settings(
-    storage: &mut (dyn eframe::Storage + 'static),
-    key: &str,
-    settings: &Settings,
-) {
+pub fn save_settings(storage: &mut dyn eframe::Storage, key: &str, settings: &Settings) {
     let settings_str =
         serde_json::to_string_pretty(settings).expect("Settings should serialize to json");
     storage.set_string(key, settings_str);

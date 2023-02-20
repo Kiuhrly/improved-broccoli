@@ -1,12 +1,23 @@
 top_menu:
-  settings_button_text: "Settings"
-settings:
-  open_settings_button_text: "Open settings..."
-  window_title: "Settings"
+  settings:
+    button_text: "Settings"
+    button_text_with_warning: "❗ Settings"
+    open_error_info:
+      button_text: "❗ Open error information..."
+    open_settings:
+      button_text: "Open settings..."
+error_info_window:
+  title: "Error Information"
+  heading: "There was an error saving or loading settings."
+  label_nonestorage: "The storage could not be accessed. This means that settings won't be loaded or saved from when this error started."
+  label_local_storage_note: "This can happen if you have local storage disabled for this webpage."
+  label_deserialize: "The settings file was loaded but an error occurred during deserialization. The file may be corrupt. This means that settings could not be loaded and will be reset to default."
+settings_window:
+  title: "Settings"
   ui_heading: "UI"
   ui_scale: "UI scale"
   display_heading: "Display"
   background_color: "Background color"
   foreground_color: "Foreground color"
-  color_reset_button: "Reset"
-  color_swap_button: "Swap"
+  color_reset_button_text: "Reset"
+  color_swap_button_text: "Swap"
